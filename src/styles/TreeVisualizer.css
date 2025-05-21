@@ -3,9 +3,9 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: center; /* This might prevent children from stretching full-width if not overridden */
   position: relative;
-  min-height: 98vh;
+  min-height: 98vh; /* Keep as is */
   padding: 0.75rem;
   background-image: 
     radial-gradient(circle at 15% 15%, rgba(42, 98, 61, 0.03) 0%, transparent 25%), 
@@ -13,6 +13,18 @@
     linear-gradient(to bottom, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.1));
   background-size: 100px 100px;
   overflow-x: hidden;
+  box-sizing: border-box; /* Add for better padding behavior */
+}
+
+/* Ensure children of tree-visualizer-container can stretch if needed */
+.tree-visualizer-container > .app-header,
+.tree-visualizer-container > .tree-controls,
+.tree-visualizer-container > .error-message, /* if it's a direct child */
+.tree-visualizer-container > .helper-info, /* if it's a direct child */
+.tree-visualizer-container > .traversal-result, /* if it's a direct child */
+.tree-visualizer-container > .visualization-status {
+  width: 100%; /* Make sure these top/bottom bars are full width */
+  box-sizing: border-box;
 }
 
 /* Home button styling */
@@ -314,21 +326,25 @@
 
 .tree-visualization-area {
   display: flex;
-  width: 100%;
-  min-height: 600px;
+  width: 100%; /* Ensure it takes full width */
+  /* min-height: 600px; */ /* Original */
+  min-height: 400px;    /* Changed for more flexibility */
+  flex-grow: 1;         /* Added */
   gap: 0.5rem;
   margin: 0.5rem 0;
-  min-height: auto;
+  box-sizing: border-box; /* Add for better padding behavior */
 }
 
 .algorithm-info {
-  flex: 0 0 280px;
+  flex: 0 0 280px; /* Keep fixed width */
   background-color: rgba(0, 0, 0, 0.2);
   padding: 0.75rem;
   border-radius: 8px;
   color: white;
-  max-height: 450px;
-  overflow-y: auto;
+  /* max-height: 450px; */ /* Original */
+  height: 100%;          /* Changed */
+  overflow-y: auto;      /* Ensure scrolling */
+  box-sizing: border-box;
 }
 
 .algorithm-info h3 {
@@ -367,15 +383,19 @@
     0 10px 20px rgba(0, 0, 0, 0.2),
     inset 0 0 80px rgba(0, 0, 0, 0.1);
   padding: 0.5rem;
-  display: flex;
+  display: flex; /* Already present, ensure it helps center/manage rd3t tree */
+  flex-direction: column; /* If empty message needs to be centered */
   justify-content: center;
   align-items: center;
   position: relative;
-  min-height: 350px;
+  /* min-height: 350px; */ /* Original */
+  min-height: 0; /* Allow shrinking if content is small */
+  height: 100%;    /* Try to fill parent's height */
   overflow: hidden;
   transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
   border-radius: 12px;
   animation: fadeInDisplay 0.8s ease-out forwards;
+  box-sizing: border-box;
 }
 
 @keyframes fadeInDisplay {
@@ -411,9 +431,13 @@
 }
 
 .code-panel {
-  flex: 0 0 350px;
-  max-height: 450px;
-  overflow: hidden;
+  flex: 0 0 350px; /* Keep fixed width */
+  /* max-height: 450px; */ /* Original */
+  height: 100%;          /* Changed */
+  overflow-y: auto;      /* Added, ensure scrolling if content overflows */
+  box-sizing: border-box;
+  display: flex; /* Added to make syntaxhighlighter take full height */
+  flex-direction: column; /* Added */
 }
 
 .empty-tree-message {

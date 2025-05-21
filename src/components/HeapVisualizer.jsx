@@ -10,7 +10,8 @@ import {
   extractMin,
   heapify,
   createSampleHeap,
-  arrayToTree
+  arrayToTree,
+  heapDelete // Import heapDelete
 } from './HeapOperations'; // Import heap operations
 import '../styles/code-highlighter.css';
 import '../styles/TreeVisualizer.css'; // Can reuse or create HeapVisualizer.css later
@@ -208,6 +209,25 @@ const algorithmInfo = {
   for i from floor(n / 2) - 1 down to 0:
     heapifyDown(array, n, i) // Similar to extractMin's sink down
   return array`
+  },
+  "Delete": {
+    timeComplexity: "O(log n) after O(n) find, or O(log n) if index known",
+    spaceComplexity: "O(1) (if modifying input array), O(n) for steps",
+    description: "Deletes a specific value from the heap. The element is found, replaced by the last element, then heapify-up or heapify-down is performed.",
+    pseudocode: `function heapDelete(heapArray, valueToDelete):
+  idxToDelete = findIndexOf(valueToDelete) // O(n)
+  if idxToDelete == -1: return "Not found"
+
+  heapArray[idxToDelete] = heapArray.pop() // Replace with last and shorten
+
+  // If new element is smaller than parent, sift up
+  parentIdx = floor((idxToDelete - 1) / 2)
+  if idxToDelete > 0 and heapArray[idxToDelete] < heapArray[parentIdx]:
+    siftUp(heapArray, idxToDelete)
+  // Else, sift down
+  else:
+    siftDown(heapArray, heapArray.length, idxToDelete)
+  return heapArray`
   }
 };
 
@@ -226,14 +246,16 @@ const HeapVisualizer = () => {
   const [currentLine, setCurrentLine] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [extractedValue, setExtractedValue] = useState(null); // To display extracted min value
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [deletedValDisplay, setDeletedValDisplay] = useState(null); // To display deleted value
+  // Removed: dropdownOpen, dropdownRef
   const [showHelperInfo, setShowHelperInfo] = useState(true);
   const [highlightedTreeNodes, setHighlightedTreeNodes] = useState([]);
+  const [showValueInput, setShowValueInput] = useState(false); // To control input field visibility
 
 
   const animationFrame = useRef(null);
   const animationState = useRef({ index: 0, results: [] }); // results are the 'steps' from HeapOperations
-  const dropdownRef = useRef(null);
+  // Removed: dropdownRef
   const treeContainerRef = useRef(null);
 
   useEffect(() => {
@@ -252,19 +274,13 @@ const HeapVisualizer = () => {
       setTree(arrayToTree(heapArray));
     }
 
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setDropdownOpen(false);
-      }
-    };
+    // Removed handleClickOutside for dropdown
 
     const handleKeyDown = (event) => {
       if (event.key === "?" || (event.key === "/" && event.shiftKey)) {
         setShowKeyboardShortcuts(prev => !prev);
       }
-      if (event.key === "Enter" && !isAnimating) {
-        handleOperation();
-      }
+      // Removed Enter key for generic handleOperation
       if (event.key === "Escape" && isAnimating) {
         stopAnimation();
       }
@@ -280,15 +296,24 @@ const HeapVisualizer = () => {
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
+    // document.removeEventListener("mousedown", handleClickOutside); // Removed
     document.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      // document.removeEventListener("mousedown", handleClickOutside); // Removed
       document.removeEventListener("keydown", handleKeyDown);
       if (animationFrame.current) clearTimeout(animationFrame.current);
     };
   }, [heapArray, isAnimating]); // Add heapArray and isAnimating to dependencies
+
+  // Effect to manage input field visibility based on operation
+  useEffect(() => {
+    if (operation === "Insert" || operation === "Delete" || operation === "Build Heap from Array") {
+      setShowValueInput(true);
+    } else {
+      setShowValueInput(false);
+    }
+  }, [operation]);
 
   const displayError = (message) => {
     setErrorMessage(message);
@@ -308,73 +333,120 @@ const HeapVisualizer = () => {
 
   const togglePause = () => setIsPaused(!isPaused);
 
-  const handleOperation = () => {
-    if (operation === "Select Operation") {
-      displayError("Please select an operation.");
+  // Removed old handleOperation function
+
+  // New individual handlers for each operation
+  const handleInsert = () => {
+    setOperation("Insert");
+    stopAnimation();
+    setExtractedValue(null);
+    setDeletedValDisplay(null);
+
+    if (!value.trim() || isNaN(parseInt(value.trim()))) {
+      displayError("Please enter a valid number for Insert.");
       return;
     }
+    const operationResult = heapInsert([...heapArray], parseInt(value.trim()));
+    setHeapArray(operationResult.heap);
+    setValue(""); // Clear input after operation
+
+    if (operationResult.steps && operationResult.steps.length > 0) {
+      animationState.current = { index: 0, results: operationResult.steps };
+      setIsAnimating(true);
+      updateAnimation();
+    } else {
+      setTree(arrayToTree(operationResult.heap));
+      setCurrentStep(operationResult.steps?.[0]?.description || "Insert complete.");
+      setHighlightedTreeNodes(operationResult.steps?.[0]?.highlightedNodes || []);
+    }
+  };
+
+  const handleExtractMin = () => {
+    setOperation("Extract Min");
     stopAnimation();
-    setExtractedValue(null); // Clear previous extracted value
+    setExtractedValue(null);
+    setDeletedValDisplay(null);
+    setValue(""); // Clear value as it's not used
 
-    let operationResult = { heap: [...heapArray], steps: [] };
+    let operationResult;
+    if (heapArray.length === 0) {
+      displayError("Heap is empty. Cannot extract min.");
+      operationResult = { heap: [], steps: [{ heap: null, description: "Heap is empty.", highlightedNodes: [] }] };
+      setHeapArray([]);
+    } else {
+      operationResult = extractMin([...heapArray]);
+      setHeapArray(operationResult.heap);
+      setExtractedValue(operationResult.extractedMin);
+    }
 
-    try {
-      switch (operation) {
-        case "Insert":
-          if (!value.trim() || isNaN(parseInt(value.trim()))) {
-            displayError("Please enter a valid number for Insert.");
-            return;
-          }
-          operationResult = heapInsert([...heapArray], parseInt(value.trim()));
-          setHeapArray(operationResult.heap);
-          break;
-        case "Extract Min":
-          if (heapArray.length === 0) {
-            displayError("Heap is empty. Cannot extract min.");
-            // Ensure steps are cleared or show empty message
-            operationResult = { heap: [], steps: [{ heap: null, description: "Heap is empty.", highlightedNodes: [] }] };
-            setHeapArray([]); // Update heapArray state
-          } else {
-            operationResult = extractMin([...heapArray]);
-            setHeapArray(operationResult.heap);
-            setExtractedValue(operationResult.extractedMin);
-          }
-          break;
-        case "Build Heap from Array":
-          if (!value.trim()) {
-            displayError("Please enter comma-separated numbers for Build Heap.");
-            return;
-          }
-          const inputArray = value.split(',').map(num => parseInt(num.trim())).filter(num => !isNaN(num));
-          if (inputArray.length === 0 && value.trim() !== "") {
-             displayError("Invalid input. Please use comma-separated numbers (e.g., 10,5,20).");
-             return;
-          }
-          operationResult = heapify(inputArray);
-          setHeapArray(operationResult.heap);
-          break;
-        default:
-          return;
-      }
-
-      if (operationResult.steps && operationResult.steps.length > 0) {
-        animationState.current = { index: 0, results: operationResult.steps };
-        setIsAnimating(true);
-        updateAnimation();
-      } else {
-        // If no steps (e.g. error in operation, or immediate operation), ensure UI reflects current heapArray
-        setTree(arrayToTree(heapArray));
-        setCurrentStep(operationResult.steps?.[0]?.description || "Operation complete.");
-        setHighlightedTreeNodes(operationResult.steps?.[0]?.highlightedNodes || []);
-      }
-    } catch (error) {
-      console.error("Operation error:", error);
-      displayError(`Operation failed: ${error.message}`);
-      // Rollback or set to a safe state if needed
-      // For now, just log and display error. The heapArray might be in an intermediate state.
+    if (operationResult.steps && operationResult.steps.length > 0) {
+      animationState.current = { index: 0, results: operationResult.steps };
+      setIsAnimating(true);
+      updateAnimation();
+    } else {
+      setTree(arrayToTree(operationResult.heap));
+      setCurrentStep(operationResult.steps?.[0]?.description || "Extract Min complete.");
+      setHighlightedTreeNodes(operationResult.steps?.[0]?.highlightedNodes || []);
     }
   };
   
+  const handleDelete = () => {
+    setOperation("Delete");
+    stopAnimation();
+    setExtractedValue(null);
+    setDeletedValDisplay(null);
+
+    if (!value.trim() || isNaN(parseInt(value.trim()))) {
+      displayError("Please enter a valid number for Delete.");
+      return;
+    }
+    const operationResult = heapDelete([...heapArray], parseInt(value.trim()));
+    setHeapArray(operationResult.heap);
+    setDeletedValDisplay(operationResult.deletedValue);
+    setValue(""); // Clear input after operation
+
+
+    if (operationResult.steps && operationResult.steps.length > 0) {
+      animationState.current = { index: 0, results: operationResult.steps };
+      setIsAnimating(true);
+      updateAnimation();
+    } else {
+      setTree(arrayToTree(operationResult.heap));
+      setCurrentStep(operationResult.steps?.[0]?.description || "Delete complete.");
+      setHighlightedTreeNodes(operationResult.steps?.[0]?.highlightedNodes || []);
+    }
+  };
+
+  const handleBuildHeap = () => {
+    setOperation("Build Heap from Array");
+    stopAnimation();
+    setExtractedValue(null);
+    setDeletedValDisplay(null);
+
+    if (!value.trim()) {
+      displayError("Please enter comma-separated numbers for Build Heap.");
+      return;
+    }
+    const inputArray = value.split(',').map(num => parseInt(num.trim())).filter(num => !isNaN(num));
+    if (inputArray.length === 0 && value.trim() !== "") {
+       displayError("Invalid input. Please use comma-separated numbers (e.g., 10,5,20).");
+       return;
+    }
+    const operationResult = heapify(inputArray);
+    setHeapArray(operationResult.heap);
+    setValue(""); // Clear input after operation
+
+    if (operationResult.steps && operationResult.steps.length > 0) {
+      animationState.current = { index: 0, results: operationResult.steps };
+      setIsAnimating(true);
+      updateAnimation();
+    } else {
+      setTree(arrayToTree(operationResult.heap));
+      setCurrentStep(operationResult.steps?.[0]?.description || "Build Heap complete.");
+      setHighlightedTreeNodes(operationResult.steps?.[0]?.highlightedNodes || []);
+    }
+  };
+
   const updateAnimation = () => {
     const { index, results } = animationState.current;
 
@@ -411,12 +483,11 @@ const HeapVisualizer = () => {
   
   const handleValueChange = (e) => {
     const input = e.target.value;
-    // Allow numbers and commas for "Build Heap from Array"
     if (operation === "Build Heap from Array") {
       if (/^[\d, ]*$/.test(input)) {
         setValue(input);
       }
-    } else { // For "Insert", only allow numbers
+    } else { // For "Insert" and "Delete", only allow numbers
       if (/^\d*$/.test(input)) {
         setValue(input);
       }
@@ -432,6 +503,7 @@ const HeapVisualizer = () => {
     setOperation("Select Operation");
     setValue("");
     setExtractedValue(null);
+    setDeletedValDisplay(null);
     setHighlightedTreeNodes([]);
   };
 
@@ -441,22 +513,13 @@ const HeapVisualizer = () => {
     setTree(null);
     setCurrentStep("Heap cleared.");
     setExtractedValue(null);
+    setDeletedValDisplay(null);
     setHighlightedTreeNodes([]);
   };
 
-  const handleOperationSelect = (op) => {
-    setOperation(op);
-    setValue(""); // Clear input when changing operation
-    setDropdownOpen(false);
-    // Update placeholder based on operation
-    if (op === "Insert") {
-        // Placeholder logic handled by input field directly
-    } else if (op === "Build Heap from Array") {
-        // Placeholder logic handled by input field directly
-    }
-  };
+  // Removed handleOperationSelect
 
-  const currentAlgorithmInfo = algorithmInfo[operation] || {};
+  const currentAlgorithmInfo = algorithmInfo[operation] || {}; // Still useful for info panel
 
   const handleCreateSampleHeap = () => {
     stopAnimation();
@@ -553,6 +616,47 @@ function buildHeap(array) {
   }
   return array;
 }`;
+      case "Delete":
+        return `// Min-Heap Delete Value
+function heapDelete(heapArray, valueToDelete) {
+  let idxToDelete = heapArray.indexOf(valueToDelete);
+  if (idxToDelete === -1) return heapArray; // Not found
+
+  const lastElement = heapArray.pop();
+  if (idxToDelete === heapArray.length) { // If it was the last element
+    return heapArray;
+  }
+  heapArray[idxToDelete] = lastElement;
+
+  const parentIndex = Math.floor((idxToDelete - 1) / 2);
+
+  // Heapify-up if smaller than parent
+  if (idxToDelete > 0 && heapArray[idxToDelete] < heapArray[parentIndex]) {
+    let current = idxToDelete;
+    let parent = parentIndex;
+    while (current > 0 && heapArray[current] < heapArray[parent]) {
+      [heapArray[current], heapArray[parent]] = [heapArray[parent], heapArray[current]];
+      current = parent;
+      parent = Math.floor((current - 1) / 2);
+    }
+  } 
+  // Else, heapify-down
+  else {
+    let current = idxToDelete;
+    while (true) {
+      let left = 2 * current + 1;
+      let right = 2 * current + 2;
+      let smallest = current;
+      if (left < heapArray.length && heapArray[left] < heapArray[smallest]) smallest = left;
+      if (right < heapArray.length && heapArray[right] < heapArray[smallest]) smallest = right;
+      if (smallest !== current) {
+        [heapArray[current], heapArray[smallest]] = [heapArray[smallest], heapArray[current]];
+        current = smallest;
+      } else break;
+    }
+  }
+  return heapArray;
+}`;
       default:
         return "// Select an operation to view code";
     }
@@ -561,6 +665,7 @@ function buildHeap(array) {
   // Determine input placeholder based on current operation
   const getInputPlaceholder = () => {
     if (operation === "Insert") return "Enter a number (e.g., 10)";
+    if (operation === "Delete") return "Enter value to delete";
     if (operation === "Build Heap from Array") return "e.g., 10,5,20,8,1";
     return "Enter value";
   };
@@ -585,66 +690,60 @@ function buildHeap(array) {
       </motion.header>
       
       <div className="tree-controls">
-        <div className="control-group">
-          <div className="dropdown-container" ref={dropdownRef}>
-            <button 
-              className={`dropdown-button ${dropdownOpen ? 'open' : ''}`} 
-              onClick={() => setDropdownOpen(prev => !prev)}
-              aria-haspopup="true"
-              aria-expanded={dropdownOpen}
-            >
-              {operation}
-            </button>
-            <div className={`dropdown-menu ${dropdownOpen ? 'show' : ''}`}>
-              <button onClick={() => handleOperationSelect("Insert")}>Insert</button>
-              <button onClick={() => handleOperationSelect("Extract Min")}>Extract Min</button>
-              <button onClick={() => handleOperationSelect("Build Heap from Array")}>Build Heap from Array</button>
-            </div>
-          </div>
-          
-          {["Insert", "Build Heap from Array"].includes(operation) && (
+        {/* Input field - visibility controlled by showValueInput state */}
+        {showValueInput && (
+          <div className="control-group value-input-group"> {/* Added class for potential styling */}
             <div className="input-group">
-              <label>Value:</label>
+              <label htmlFor="heapValueInput">Value:</label>
               <input 
+                id="heapValueInput"
                 type="text" 
                 value={value} 
                 onChange={handleValueChange} 
                 placeholder={getInputPlaceholder()}
-                maxLength={operation === "Insert" ? 3 : 100} // Adjust maxLength
+                maxLength={operation === "Insert" || operation === "Delete" ? 5 : 100} 
+                aria-label="Value for heap operation"
               />
             </div>
-          )}
-        </div>
+          </div>
+        )}
         
-        <div className="action-buttons">
-          <button className="action-button" onClick={handleOperation} disabled={isAnimating && !isPaused}>
-            {isAnimating && !isPaused ? "Running..." : "Run"}
+        <div className="action-buttons main-operations"> {/* Group for new operation buttons */}
+          <button className="action-button" onClick={handleInsert} disabled={isAnimating && !isPaused}>
+            Insert
           </button>
-          
+          <button className="action-button" onClick={handleExtractMin} disabled={isAnimating && !isPaused}>
+            Extract Min
+          </button>
+          <button className="action-button" onClick={handleDelete} disabled={isAnimating && !isPaused}>
+            Delete Value
+          </button>
+          <button className="action-button" onClick={handleBuildHeap} disabled={isAnimating && !isPaused}>
+            Build Heap from Array
+          </button>
+        </div>
+
+        <div className="action-buttons utility-operations"> {/* Group for existing utility buttons */}
           {isAnimating && (
             <button className="action-button" onClick={togglePause}>
               {isPaused ? "Resume" : "Pause"}
             </button>
           )}
-          
           <button className="action-button" onClick={stopAnimation} disabled={!isAnimating}>
             Stop
           </button>
-          
           <button className="action-button generate-button" onClick={handleCreateSampleHeap}>
             Create Sample Heap
           </button>
-          
           <button className="action-button" onClick={clearHeap}>
             Clear Heap
           </button>
-          
           <button className="action-button" onClick={resetHeap}>
             Reset
           </button>
         </div>
         
-        <div className="control-group">
+        <div className="control-group misc-controls"> {/* Group for speed, info, etc. */}
           <div className="range-group">
             <label htmlFor="speed">Speed:</label>
             <input 
@@ -797,6 +896,12 @@ function buildHeap(array) {
       {extractedValue !== null && (
         <div className="traversal-result"> {/* Reusing class for simplicity */}
           <h3>Extracted Min: <span className="result-item">{extractedValue}</span></h3>
+        </div>
+      )}
+
+      {deletedValDisplay !== null && (
+        <div className="traversal-result">
+          <h3>Deleted Value: <span className="result-item">{deletedValDisplay}</span></h3>
         </div>
       )}
       
