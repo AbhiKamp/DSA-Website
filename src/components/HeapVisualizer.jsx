@@ -234,7 +234,7 @@ const algorithmInfo = {
 const HeapVisualizer = () => {
   const [heapArray, setHeapArray] = useState([]); // Stores the heap as an array
   const [tree, setTree] = useState(null); // Stores the tree structure for react-d3-tree
-  const [operation, setOperation] = useState("Select Operation");
+  const [operation, setOperation] = useState("Insert"); // Default operation to Insert
   const [value, setValue] = useState(""); // For Insert (single value) or Build Heap (comma-separated)
   const [speed, setSpeed] = useState(100);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -459,8 +459,10 @@ const HeapVisualizer = () => {
       setIsAnimating(false);
       // Final state: ensure the tree reflects the final heapArray
       setTree(arrayToTree(heapArray)); 
-      setCurrentStep(results[results.length - 1]?.description || "Animation complete.");
-      setHighlightedTreeNodes(results[results.length -1]?.highlightedNodes || []);
+      // setCurrentStep(results[results.length - 1]?.description || "Animation complete."); // Old message
+      setCurrentStep("Operation complete. Ready for next input."); // New neutral message
+      // setHighlightedTreeNodes(results[results.length -1]?.highlightedNodes || []); // Old highlighting logic
+      setHighlightedTreeNodes([]); // Clear all highlights
       return;
     }
 
@@ -709,16 +711,16 @@ function heapDelete(heapArray, valueToDelete) {
         )}
         
         <div className="action-buttons main-operations"> {/* Group for new operation buttons */}
-          <button className="action-button" onClick={handleInsert} disabled={isAnimating && !isPaused}>
+          <button className="action-button" onClick={handleInsert}>
             Insert
           </button>
-          <button className="action-button" onClick={handleExtractMin} disabled={isAnimating && !isPaused}>
+          <button className="action-button" onClick={handleExtractMin}>
             Extract Min
           </button>
-          <button className="action-button" onClick={handleDelete} disabled={isAnimating && !isPaused}>
+          <button className="action-button" onClick={handleDelete}>
             Delete Value
           </button>
-          <button className="action-button" onClick={handleBuildHeap} disabled={isAnimating && !isPaused}>
+          <button className="action-button" onClick={handleBuildHeap}>
             Build Heap from Array
           </button>
         </div>
