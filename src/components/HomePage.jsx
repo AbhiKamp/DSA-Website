@@ -79,9 +79,10 @@ const HomePage = () => {
     },
     {
       title: 'Heaps',
+      link: '/heap', // Added link
       icon: <FaLayerGroup size={40} color={getIconColor('#2A623D')} />,
       color: '#2A623D', // Green
-      enabled: false
+      enabled: true // Enabled
     }
   ];
   

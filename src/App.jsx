@@ -16,6 +16,7 @@ import AboutUs from './components/AboutUs'
 import SortingVisualizer from './components/SortingVisualizer'
 import TreeVisualizer from './components/TreeVisualizer'
 import PathfindingVisualizer from './components/PathfindingVisualizer/PathfindingVisualizer'
+import HeapVisualizer from './components/HeapVisualizer';
 import { generateCppCode } from './utils/codeGenerator'
 
 // Create a wrapper component to handle LinkedList page state
@@ -156,6 +157,7 @@ function App() {
         />
         <Route path="/sorting" element={<SortingVisualizer />} />
         <Route path="/trees" element={<TreeVisualizer />} />
+        <Route path="/heap" element={<HeapVisualizer />} />
         <Route path="/graphs" element={<PathfindingVisualizer />} />
         <Route path="/about" element={<AboutUs />} />
         <Route path="/index.html" element={<Navigate replace to="/" />} />
