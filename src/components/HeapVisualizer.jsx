@@ -7,11 +7,11 @@ import SyntaxHighlighter from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import {
   heapInsert,
-  extractMin,
+  extractTop, // Changed from extractMin
   heapify,
   createSampleHeap,
   arrayToTree,
-  heapDelete // Import heapDelete
+  heapDelete
 } from './HeapOperations'; // Import heap operations
 import '../styles/code-highlighter.css';
 import '../styles/TreeVisualizer.css'; // Can reuse or create HeapVisualizer.css later
@@ -159,74 +159,72 @@ const algorithmInfo = {
   "Insert": {
     timeComplexity: "O(log n)",
     spaceComplexity: "O(1) (if modifying input array), O(n) for steps",
-    description: "Inserts an element into the min-heap. The new element is added to the end, then it 'bubbles up' to its correct position to maintain the heap property.",
-    pseudocode: `function heapInsert(heapArray, value):
+    description: "Inserts an element into the heap. The new element is added to the end, then it 'sifts up' to its correct position to maintain the heap property.",
+    pseudocode: `// For Min-Heap, child < parent condition for swap
+// For Max-Heap, child > parent condition for swap
+function heapInsert(heapArray, value, heapType):
   heapArray.push(value)
   currentIndex = heapArray.length - 1
   parentIndex = floor((currentIndex - 1) / 2)
 
-  while currentIndex > 0 and heapArray[currentIndex] < heapArray[parentIndex]:
+  while currentIndex > 0 and shouldSwap(heapArray[currentIndex], heapArray[parentIndex], heapType):
     swap(heapArray[currentIndex], heapArray[parentIndex])
     currentIndex = parentIndex
     parentIndex = floor((currentIndex - 1) / 2)
   return heapArray`
   },
-  "Extract Min": {
+  "Extract Top": { // Renamed from "Extract Min"
     timeComplexity: "O(log n)",
     spaceComplexity: "O(1) (if modifying input array), O(n) for steps",
-    description: "Removes and returns the smallest element (root) from the min-heap. The last element is moved to the root, then it 'sinks down' (heapify-down) to maintain the heap property.",
-    pseudocode: `function extractMin(heapArray):
+    description: "Removes and returns the top element (min for Min-Heap, max for Max-Heap) from the heap. The last element is moved to the root, then it 'sifts down' to maintain the heap property.",
+    pseudocode: `// For Min-Heap, compare with smaller child
+// For Max-Heap, compare with larger child
+function extractTop(heapArray, heapType):
   if heapArray is empty:
     return null
   
-  min = heapArray[0]
+  topValue = heapArray[0]
   heapArray[0] = heapArray.pop() // Move last element to root
   
   currentIndex = 0
   while true:
     leftChildIndex = 2 * currentIndex + 1
     rightChildIndex = 2 * currentIndex + 2
-    smallest = currentIndex
+    extremeChild = findExtremeChild(heapArray, currentIndex, leftChildIndex, rightChildIndex, heapType)
 
-    if leftChildIndex < heapArray.length and heapArray[leftChildIndex] < heapArray[smallest]:
-      smallest = leftChildIndex
-    if rightChildIndex < heapArray.length and heapArray[rightChildIndex] < heapArray[smallest]:
-      smallest = rightChildIndex
-
-    if smallest != currentIndex:
-      swap(heapArray[currentIndex], heapArray[smallest])
-      currentIndex = smallest
+    if extremeChild is not currentIndex:
+      swap(heapArray[currentIndex], heapArray[extremeChild])
+      currentIndex = extremeChild
     else:
       break
-  return min`
+  return topValue`
   },
   "Build Heap from Array": {
     timeComplexity: "O(n)",
     spaceComplexity: "O(1) (in-place), O(n) for steps",
-    description: "Builds a min-heap from an arbitrary array. It iterates from the last non-leaf node upwards, applying heapify-down to each node.",
-    pseudocode: `function buildHeap(array):
+    description: "Builds a heap (Min or Max) from an arbitrary array. It iterates from the last non-leaf node upwards, applying sift-down to each node.",
+    pseudocode: `// Sift-down logic depends on heapType
+function buildHeap(array, heapType):
   n = array.length
   for i from floor(n / 2) - 1 down to 0:
-    heapifyDown(array, n, i) // Similar to extractMin's sink down
+    siftDown(array, n, i, heapType)
   return array`
   },
   "Delete": {
     timeComplexity: "O(log n) after O(n) find, or O(log n) if index known",
     spaceComplexity: "O(1) (if modifying input array), O(n) for steps",
-    description: "Deletes a specific value from the heap. The element is found, replaced by the last element, then heapify-up or heapify-down is performed.",
-    pseudocode: `function heapDelete(heapArray, valueToDelete):
+    description: "Deletes a specific value from the heap. The element is found, replaced by the last element, then sift-up or sift-down is performed based on heap type.",
+    pseudocode: `// Sift-up and Sift-down logic depends on heapType
+function heapDelete(heapArray, valueToDelete, heapType):
   idxToDelete = findIndexOf(valueToDelete) // O(n)
   if idxToDelete == -1: return "Not found"
 
   heapArray[idxToDelete] = heapArray.pop() // Replace with last and shorten
 
-  // If new element is smaller than parent, sift up
-  parentIdx = floor((idxToDelete - 1) / 2)
-  if idxToDelete > 0 and heapArray[idxToDelete] < heapArray[parentIdx]:
-    siftUp(heapArray, idxToDelete)
-  // Else, sift down
+  if shouldSiftUp(heapArray, idxToDelete, heapType):
+    siftUp(heapArray, idxToDelete, heapType)
   else:
-    siftDown(heapArray, heapArray.length, idxToDelete)
+    siftDown(heapArray, heapArray.length, idxToDelete, heapType)
   return heapArray`
   }
 };
@@ -245,8 +243,9 @@ const HeapVisualizer = () => {
   const [currentStep, setCurrentStep] = useState("");
   const [currentLine, setCurrentLine] = useState(0);
   // const [isPaused, setIsPaused] = useState(false); // Removed
-  const [extractedValue, setExtractedValue] = useState(null); // To display extracted min value
+  const [topValueDisplay, setTopValueDisplay] = useState(null); // Renamed from extractedValue
   const [deletedValDisplay, setDeletedValDisplay] = useState(null); // To display deleted value
+  const [heapType, setHeapType] = useState('min'); // Added heapType state
   // Removed: dropdownOpen, dropdownRef
   const [showHelperInfo, setShowHelperInfo] = useState(true);
   const [highlightedTreeNodes, setHighlightedTreeNodes] = useState([]);
@@ -329,14 +328,14 @@ const HeapVisualizer = () => {
   const handleInsert = () => {
     setOperation("Insert");
     stopAnimation();
-    setExtractedValue(null);
+    setTopValueDisplay(null);
     setDeletedValDisplay(null);
 
     if (!value.trim() || isNaN(parseInt(value.trim()))) {
       displayError("Please enter a valid number for Insert.");
       return;
     }
-    const operationResult = heapInsert([...heapArray], parseInt(value.trim()));
+    const operationResult = heapInsert([...heapArray], parseInt(value.trim()), heapType); // Pass heapType
     setHeapArray(operationResult.heap);
     setValue(""); // Clear input after operation
 
@@ -351,22 +350,22 @@ const HeapVisualizer = () => {
     }
   };
 
-  const handleExtractMin = () => {
-    setOperation("Extract Min");
+  const handleExtractTop = () => { // Renamed from handleExtractMin
+    setOperation("Extract Top"); // Update operation name
     stopAnimation();
-    setExtractedValue(null);
+    setTopValueDisplay(null); // Update state setter
     setDeletedValDisplay(null);
     setValue(""); // Clear value as it's not used
 
     let operationResult;
     if (heapArray.length === 0) {
-      displayError("Heap is empty. Cannot extract min.");
-      operationResult = { heap: [], steps: [{ heap: null, description: "Heap is empty.", highlightedNodes: [] }] };
+      displayError(`Heap is empty. Cannot extract ${heapType === 'min' ? 'min' : 'max'}.`);
+      operationResult = { heap: [], steps: [{ heap: null, description: "Heap is empty.", highlightedNodes: [] }], extractedValue: null };
       setHeapArray([]);
     } else {
-      operationResult = extractMin([...heapArray]);
+      operationResult = extractTop([...heapArray], heapType); // Pass heapType
       setHeapArray(operationResult.heap);
-      setExtractedValue(operationResult.extractedMin);
+      setTopValueDisplay(operationResult.extractedValue); // Update state
     }
 
     if (operationResult.steps && operationResult.steps.length > 0) {
@@ -383,14 +382,14 @@ const HeapVisualizer = () => {
   const handleDelete = () => {
     setOperation("Delete");
     stopAnimation();
-    setExtractedValue(null);
+    setTopValueDisplay(null);
     setDeletedValDisplay(null);
 
     if (!value.trim() || isNaN(parseInt(value.trim()))) {
       displayError("Please enter a valid number for Delete.");
       return;
     }
-    const operationResult = heapDelete([...heapArray], parseInt(value.trim()));
+    const operationResult = heapDelete([...heapArray], parseInt(value.trim()), heapType); // Pass heapType
     setHeapArray(operationResult.heap);
     setDeletedValDisplay(operationResult.deletedValue);
     setValue(""); // Clear input after operation
@@ -410,7 +409,7 @@ const HeapVisualizer = () => {
   const handleBuildHeap = () => {
     setOperation("Build Heap from Array");
     stopAnimation();
-    setExtractedValue(null);
+    setTopValueDisplay(null);
     setDeletedValDisplay(null);
 
     if (!value.trim()) {
@@ -422,7 +421,7 @@ const HeapVisualizer = () => {
        displayError("Invalid input. Please use comma-separated numbers (e.g., 10,5,20).");
        return;
     }
-    const operationResult = heapify(inputArray);
+    const operationResult = heapify(inputArray, heapType); // Pass heapType
     setHeapArray(operationResult.heap);
     setValue(""); // Clear input after operation
 
@@ -496,7 +495,7 @@ const HeapVisualizer = () => {
     // setOperation("Select Operation"); // Before
     setOperation("Insert"); // After, to match default state and always-visible input
     setValue("");
-    setExtractedValue(null);
+    setTopValueDisplay(null);
     setDeletedValDisplay(null);
     setHighlightedTreeNodes([]);
     setValue(""); // Added
@@ -507,7 +506,7 @@ const HeapVisualizer = () => {
     setHeapArray([]);
     setTree(null);
     setCurrentStep("Heap cleared.");
-    setExtractedValue(null);
+    setTopValueDisplay(null);
     setDeletedValDisplay(null);
     setHighlightedTreeNodes([]);
   };
@@ -517,101 +516,130 @@ const HeapVisualizer = () => {
   const currentAlgorithmInfo = algorithmInfo[operation] || {}; // Still useful for info panel
 
   const handleCreateSampleHeap = () => {
-    setOperation("Insert"); // Added to reset context for the input field
+    setOperation("Insert"); 
     stopAnimation();
-    const { heap, steps } = createSampleHeap();
-    setHeapArray(heap);
-    setExtractedValue(null);
-    setDeletedValDisplay(null); // Ensure this is also cleared
-    setValue(""); // Added
+    setValue(""); 
+    setTopValueDisplay(null);
+    setDeletedValDisplay(null);
 
-    if (steps && steps.length > 0) {
-      setTree(steps[0].heap); 
-      setCurrentStep(steps[0].description);
-      setHighlightedTreeNodes(steps[0].highlightedNodes || []);
+    let { heap: sampleHeap, steps: sampleSteps } = createSampleHeap(); // Always creates a min-heap
+    
+    if (heapType === 'max') {
+      setCurrentStep(`Converting sample min-heap to max-heap... Current heap is ${heapType}.`);
+      const conversionResult = heapify(sampleHeap, 'max');
+      sampleHeap = conversionResult.heap;
+      // Combine steps or just show final state
+      // For simplicity, animate the conversion:
+      if (conversionResult.steps && conversionResult.steps.length > 0) {
+        setHeapArray(sampleHeap); // Set final heapArray
+        animationState.current = { index: 0, results: conversionResult.steps };
+        setIsAnimating(true);
+        updateAnimation(); // This will set the tree and currentStep from animation
+        return; // Return early as animation will handle UI update
+      }
+      // Fallback if conversion has no steps (should not happen with current heapify)
+      setCurrentStep(`Sample max-heap created from min-heap.`);
     } else {
-      setTree(arrayToTree(heap)); 
-      setCurrentStep("Sample heap created.");
+       setCurrentStep(sampleSteps?.[0]?.description || `Sample ${heapType}-heap created.`);
+    }
+    
+    setHeapArray(sampleHeap);
+
+    if (sampleSteps && sampleSteps.length > 0 && heapType === 'min') {
+       setTree(sampleSteps[0].heap);
+       setHighlightedTreeNodes(sampleSteps[0].highlightedNodes || []);
+    } else { 
+       setTree(arrayToTree(sampleHeap));
+       setHighlightedTreeNodes([]);
     }
   };
   
   const getOperationCode = () => {
+    // Note: Pseudocode in algorithmInfo is more generic.
+    // This provides a specific example, usually for min-heap.
+    // Could be adapted for heapType if needed, but simple for now.
+    const heapTypeComment = `// Code example for ${heapType}-heap.
+// For ${heapType === 'min' ? 'max' : 'min'}-heap, comparisons ( < / > ) would be inverted.`;
+
     switch (operation) {
       case "Insert":
-        return `// Min-Heap Insert
+        return `${heapTypeComment}
 function heapInsert(heapArray, value) {
   heapArray.push(value);
   let currentIndex = heapArray.length - 1;
   let parentIndex = Math.floor((currentIndex - 1) / 2);
-
-  while (currentIndex > 0 && heapArray[currentIndex] < heapArray[parentIndex]) {
-    // Swap
-    [heapArray[currentIndex], heapArray[parentIndex]] = 
-      [heapArray[parentIndex], heapArray[currentIndex]];
-    
+  // Comparison depends on heapType
+  while (currentIndex > 0 && (heapType === 'min' ? heapArray[currentIndex] < heapArray[parentIndex] : heapArray[currentIndex] > heapArray[parentIndex])) {
+    [heapArray[currentIndex], heapArray[parentIndex]] = [heapArray[parentIndex], heapArray[currentIndex]];
     currentIndex = parentIndex;
     parentIndex = Math.floor((currentIndex - 1) / 2);
   }
   return heapArray;
 }`;
-      case "Extract Min":
-        return `// Min-Heap Extract Min
-function extractMin(heapArray) {
+      case "Extract Top": // Renamed from "Extract Min"
+        return `${heapTypeComment}
+function extractTop(heapArray) {
   if (heapArray.length === 0) return null;
-  const min = heapArray[0];
+  const topValue = heapArray[0];
   if (heapArray.length === 1) {
     heapArray.pop();
-    return min;
+    return topValue;
   }
-  heapArray[0] = heapArray.pop(); // Move last to root
+  heapArray[0] = heapArray.pop(); 
   let currentIndex = 0;
   while (true) {
     let leftChild = 2 * currentIndex + 1;
     let rightChild = 2 * currentIndex + 2;
-    let smallest = currentIndex;
+    let extremeChild = currentIndex; // Smallest for min, largest for max
 
-    if (leftChild < heapArray.length && heapArray[leftChild] < heapArray[smallest]) {
-      smallest = leftChild;
+    // Logic to find extremeChild based on heapType
+    if (heapType === 'min') {
+      if (leftChild < heapArray.length && heapArray[leftChild] < heapArray[extremeChild]) extremeChild = leftChild;
+      if (rightChild < heapArray.length && heapArray[rightChild] < heapArray[extremeChild]) extremeChild = rightChild;
+    } else { // max-heap
+      if (leftChild < heapArray.length && heapArray[leftChild] > heapArray[extremeChild]) extremeChild = leftChild;
+      if (rightChild < heapArray.length && heapArray[rightChild] > heapArray[extremeChild]) extremeChild = rightChild;
     }
-    if (rightChild < heapArray.length && heapArray[rightChild] < heapArray[smallest]) {
-      smallest = rightChild;
-    }
-    if (smallest !== currentIndex) {
-      [heapArray[currentIndex], heapArray[smallest]] = 
-        [heapArray[smallest], heapArray[currentIndex]];
-      currentIndex = smallest;
+
+    if (extremeChild !== currentIndex) {
+      [heapArray[currentIndex], heapArray[extremeChild]] = [heapArray[extremeChild], heapArray[currentIndex]];
+      currentIndex = extremeChild;
     } else {
       break;
     }
   }
-  return min;
+  return topValue;
 }`;
       case "Build Heap from Array":
-        return `// Build Min-Heap (Heapify)
-function heapifyDown(array, n, i) { // Helper for buildHeap
-  let smallest = i;
-  let left = 2 * i + 1;
-  let right = 2 * i + 2;
-
-  if (left < n && array[left] < array[smallest]) smallest = left;
-  if (right < n && array[right] < array[smallest]) smallest = right;
-
-  if (smallest !== i) {
-    [array[i], array[smallest]] = [array[smallest], array[i]];
-    heapifyDown(array, n, smallest);
+        return `${heapTypeComment}
+function siftDown(array, n, i, heapType) { // Helper
+  let currentIndex = i;
+  while (true) {
+    let leftChild = 2 * currentIndex + 1;
+    let rightChild = 2 * currentIndex + 2;
+    let extremeChild = currentIndex;
+    if (heapType === 'min') {
+      if (leftChild < n && array[leftChild] < array[extremeChild]) extremeChild = leftChild;
+      if (rightChild < n && array[rightChild] < array[extremeChild]) extremeChild = rightChild;
+    } else {
+      if (leftChild < n && array[leftChild] > array[extremeChild]) extremeChild = leftChild;
+      if (rightChild < n && array[rightChild] > array[extremeChild]) extremeChild = rightChild;
+    }
+    if (extremeChild !== currentIndex) {
+      [array[currentIndex], array[extremeChild]] = [array[extremeChild], array[currentIndex]];
+      currentIndex = extremeChild;
+    } else break;
   }
 }
-
-function buildHeap(array) {
+function buildHeap(array, heapType) {
   const n = array.length;
-  // Start from the last non-leaf node
   for (let i = Math.floor(n / 2) - 1; i >= 0; i--) {
-    heapifyDown(array, n, i);
+    siftDown(array, n, i, heapType);
   }
   return array;
 }`;
       case "Delete":
-        return `// Min-Heap Delete Value
+        return `${heapTypeComment}
 function heapDelete(heapArray, valueToDelete) {
   let idxToDelete = heapArray.indexOf(valueToDelete);
   if (idxToDelete === -1) return heapArray; // Not found
@@ -704,8 +732,8 @@ function heapDelete(heapArray, valueToDelete) {
           <button className="action-button" onClick={handleInsert}>
             Insert
           </button>
-          <button className="action-button" onClick={handleExtractMin}>
-            Extract Min
+          <button className="action-button" onClick={handleExtractTop}> {/* Renamed handler */}
+            Extract {heapType === 'min' ? 'Min' : 'Max'}
           </button>
           <button className="action-button" onClick={handleDelete}>
             Delete Value
@@ -716,6 +744,16 @@ function heapDelete(heapArray, valueToDelete) {
         </div>
 
         <div className="action-buttons utility-operations"> {/* Group for existing utility buttons */}
+          {/* Heap Type Switch Buttons */}
+          {heapType === 'min' ? (
+            <button className="action-button type-switch-button" onClick={handleSwitchToMaxHeap}>
+              Switch to Max Heap
+            </button>
+          ) : (
+            <button className="action-button type-switch-button" onClick={handleSwitchToMinHeap}>
+              Switch to Min Heap
+            </button>
+          )}
           {/* Removed Pause/Resume button */}
           {/* Removed Stop button */}
           <button className="action-button generate-button" onClick={handleCreateSampleHeap}>
@@ -804,7 +842,7 @@ function heapDelete(heapArray, valueToDelete) {
             animate={{ opacity: 1, x: 0 }}
             transition={springAnim}
           >
-            <h3>{operation}</h3>
+            <h3>{heapType === 'min' ? 'Min-Heap' : 'Max-Heap'} {operation}</h3>
             <p><strong>Description:</strong> {currentAlgorithmInfo.description}</p>
             <p><strong>Time Complexity:</strong> {currentAlgorithmInfo.timeComplexity}</p>
             <p><strong>Space Complexity:</strong> {currentAlgorithmInfo.spaceComplexity}</p>
@@ -879,9 +917,9 @@ function heapDelete(heapArray, valueToDelete) {
         )}
       </div>
       
-      {extractedValue !== null && (
-        <div className="traversal-result"> {/* Reusing class for simplicity */}
-          <h3>Extracted Min: <span className="result-item">{extractedValue}</span></h3>
+      {topValueDisplay !== null && ( // Renamed state
+        <div className="traversal-result"> 
+          <h3>Extracted Top Value: <span className="result-item">{topValueDisplay}</span></h3>
         </div>
       )}
 
@@ -896,7 +934,7 @@ function heapDelete(heapArray, valueToDelete) {
           <div className="status-icon">
             {isAnimating ? <div className="status-running" title="Animation running"><div className="dot dot1"></div><div className="dot dot2"></div><div className="dot dot3"></div></div> : <div className="status-ready" title="Ready">✓</div>}
           </div>
-          <div className="status-title">{isAnimating ? 'Visualizing: ' + operation : 'Status'}</div>
+          <div className="status-title">{isAnimating ? `Visualizing: ${heapType} Heap ${operation}` : `Status: ${heapType} Heap`}</div>
         </div>
         <div className="current-step">{currentStep}</div>
       </div>

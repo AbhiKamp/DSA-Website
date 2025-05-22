@@ -40,7 +40,7 @@
                            */
   /* Let's add a specific margin for now to ensure it has some spacing if other elements crowd it */
   margin-bottom: 0.5rem; /* Add some bottom margin if controls wrap */
-} 
+}
 
 /* Specific adjustments for HeapVisualizer's control layout from Turn 10 */
 /* .tree-controls was modified to have multiple .control-group and .action-buttons divs */
@@ -66,18 +66,16 @@
 
 .tree-controls .action-buttons.main-operations {
   /* This group might be in the center */
-  padding-right: 5px;
   display: flex;
-  gap: 0.6rem;
+  gap: 0.3rem;
   justify-content: center; /* Center buttons within their group */
   flex-wrap: wrap;
 }
 
 .tree-controls .action-buttons.utility-operations {
   /* This group might be further to the right */
-  padding-right: 300px;
   display: flex;
-  gap: 0.9rem;
+  gap: 0.3rem;
   justify-content: center;
   flex-wrap: wrap;
 }
