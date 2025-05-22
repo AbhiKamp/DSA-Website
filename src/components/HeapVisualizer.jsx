@@ -716,17 +716,8 @@ function heapDelete(heapArray, valueToDelete) {
         </div>
 
         <div className="action-buttons utility-operations"> {/* Group for existing utility buttons */}
-<<<<<<< Updated upstream
           {/* Removed Pause/Resume button */}
           {/* Removed Stop button */}
-=======
-          {isAnimating && (
-            <button className="action-button" onClick={togglePause}>
-              {isPaused ? "Resume" : "Pause"}
-            </button>
-          )}
-          
->>>>>>> Stashed changes
           <button className="action-button generate-button" onClick={handleCreateSampleHeap}>
             Create Sample Heap
           </button>
