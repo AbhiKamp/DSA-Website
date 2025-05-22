@@ -244,13 +244,13 @@ const HeapVisualizer = () => {
   const [showCodePanel, setShowCodePanel] = useState(true);
   const [currentStep, setCurrentStep] = useState("");
   const [currentLine, setCurrentLine] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
+  // const [isPaused, setIsPaused] = useState(false); // Removed
   const [extractedValue, setExtractedValue] = useState(null); // To display extracted min value
   const [deletedValDisplay, setDeletedValDisplay] = useState(null); // To display deleted value
   // Removed: dropdownOpen, dropdownRef
   const [showHelperInfo, setShowHelperInfo] = useState(true);
   const [highlightedTreeNodes, setHighlightedTreeNodes] = useState([]);
-  const [showValueInput, setShowValueInput] = useState(false); // To control input field visibility
+  // Removed: showValueInput state
 
 
   const animationFrame = useRef(null);
@@ -284,10 +284,7 @@ const HeapVisualizer = () => {
       if (event.key === "Escape" && isAnimating) {
         stopAnimation();
       }
-      if (event.key === " " && isAnimating) {
-        togglePause();
-        event.preventDefault();
-      }
+      // Removed Space key for pause/resume
       if (event.key === "g" && !event.ctrlKey && !event.metaKey) {
         handleCreateSampleHeap();
       }
@@ -306,14 +303,7 @@ const HeapVisualizer = () => {
     };
   }, [heapArray, isAnimating]); // Add heapArray and isAnimating to dependencies
 
-  // Effect to manage input field visibility based on operation
-  useEffect(() => {
-    if (operation === "Insert" || operation === "Delete" || operation === "Build Heap from Array") {
-      setShowValueInput(true);
-    } else {
-      setShowValueInput(false);
-    }
-  }, [operation]);
+  // Removed: useEffect for showValueInput
 
   const displayError = (message) => {
     setErrorMessage(message);
@@ -325,13 +315,13 @@ const HeapVisualizer = () => {
     if (animationFrame.current) clearTimeout(animationFrame.current);
     animationFrame.current = null;
     setIsAnimating(false);
-    setIsPaused(false);
+    // setIsPaused(false); // Removed
     // Set tree to the final state based on the current heapArray
     setTree(arrayToTree(heapArray));
     setHighlightedTreeNodes([]); // Clear highlights
   };
 
-  const togglePause = () => setIsPaused(!isPaused);
+  // Removed togglePause function
 
   // Removed old handleOperation function
 
@@ -450,10 +440,11 @@ const HeapVisualizer = () => {
   const updateAnimation = () => {
     const { index, results } = animationState.current;
 
-    if (isPaused) {
-      animationFrame.current = setTimeout(updateAnimation, 100); // Check again soon if paused
-      return;
-    }
+    // Removed isPaused check
+    // if (isPaused) {
+    //   animationFrame.current = setTimeout(updateAnimation, 100); // Check again soon if paused
+    //   return;
+    // }
 
     if (index >= results.length) {
       setIsAnimating(false);
@@ -502,11 +493,13 @@ const HeapVisualizer = () => {
     setTree(null);
     setCurrentStep("");
     setCurrentLine(0);
-    setOperation("Select Operation");
+    // setOperation("Select Operation"); // Before
+    setOperation("Insert"); // After, to match default state and always-visible input
     setValue("");
     setExtractedValue(null);
     setDeletedValDisplay(null);
     setHighlightedTreeNodes([]);
+    setValue(""); // Added
   };
 
   const clearHeap = () => {
@@ -524,21 +517,20 @@ const HeapVisualizer = () => {
   const currentAlgorithmInfo = algorithmInfo[operation] || {}; // Still useful for info panel
 
   const handleCreateSampleHeap = () => {
+    setOperation("Insert"); // Added to reset context for the input field
     stopAnimation();
     const { heap, steps } = createSampleHeap();
     setHeapArray(heap);
     setExtractedValue(null);
+    setDeletedValDisplay(null); // Ensure this is also cleared
+    setValue(""); // Added
+
     if (steps && steps.length > 0) {
-      // To show the initial state of the sample heap immediately
       setTree(steps[0].heap); 
       setCurrentStep(steps[0].description);
       setHighlightedTreeNodes(steps[0].highlightedNodes || []);
-      // If you want to animate its creation (e.g. if heapify has steps)
-      // animationState.current = { index: 0, results: steps };
-      // setIsAnimating(true);
-      // updateAnimation();
     } else {
-      setTree(arrayToTree(heap)); // Fallback if no steps
+      setTree(arrayToTree(heap)); 
       setCurrentStep("Sample heap created.");
     }
   };
@@ -692,23 +684,21 @@ function heapDelete(heapArray, valueToDelete) {
       </motion.header>
       
       <div className="tree-controls">
-        {/* Input field - visibility controlled by showValueInput state */}
-        {showValueInput && (
-          <div className="control-group value-input-group"> {/* Added class for potential styling */}
-            <div className="input-group">
-              <label htmlFor="heapValueInput">Value:</label>
-              <input 
-                id="heapValueInput"
-                type="text" 
-                value={value} 
-                onChange={handleValueChange} 
-                placeholder={getInputPlaceholder()}
-                maxLength={operation === "Insert" || operation === "Delete" ? 5 : 100} 
-                aria-label="Value for heap operation"
-              />
-            </div>
+        {/* Input field is now unconditionally rendered */}
+        <div className="control-group value-input-group">
+          <div className="input-group">
+            <label htmlFor="heapValueInput">Value:</label>
+            <input 
+              id="heapValueInput"
+              type="text" 
+              value={value} 
+              onChange={handleValueChange} 
+              placeholder={getInputPlaceholder()}
+              maxLength={operation === "Insert" || operation === "Delete" ? 5 : 100} 
+              aria-label="Value for heap operation"
+            />
           </div>
-        )}
+        </div>
         
         <div className="action-buttons main-operations"> {/* Group for new operation buttons */}
           <button className="action-button" onClick={handleInsert}>
@@ -726,14 +716,8 @@ function heapDelete(heapArray, valueToDelete) {
         </div>
 
         <div className="action-buttons utility-operations"> {/* Group for existing utility buttons */}
-          {isAnimating && (
-            <button className="action-button" onClick={togglePause}>
-              {isPaused ? "Resume" : "Pause"}
-            </button>
-          )}
-          <button className="action-button" onClick={stopAnimation} disabled={!isAnimating}>
-            Stop
-          </button>
+          {/* Removed Pause/Resume button */}
+          {/* Removed Stop button */}
           <button className="action-button generate-button" onClick={handleCreateSampleHeap}>
             Create Sample Heap
           </button>
@@ -934,7 +918,7 @@ function heapDelete(heapArray, valueToDelete) {
             </div>
             <div className="shortcuts-content">
               <div className="shortcut-group"><h4>Navigation</h4><div className="shortcut-item"><span className="shortcut-keys"><kbd>?</kbd></span><span className="shortcut-description">Show/hide keyboard shortcuts</span></div><div className="shortcut-item"><span className="shortcut-keys"><kbd>Home</kbd></span><span className="shortcut-description">Return to homepage</span></div></div>
-              <div className="shortcut-group"><h4>Operations</h4><div className="shortcut-item"><span className="shortcut-keys"><kbd>Enter</kbd></span><span className="shortcut-description">Run selected operation</span></div><div className="shortcut-item"><span className="shortcut-keys"><kbd>Space</kbd></span><span className="shortcut-description">Pause/resume animation</span></div><div className="shortcut-item"><span className="shortcut-keys"><kbd>Esc</kbd></span><span className="shortcut-description">Stop animation</span></div><div className="shortcut-item"><span className="shortcut-keys"><kbd>G</kbd></span><span className="shortcut-description">Create sample heap</span></div></div>
+              <div className="shortcut-group"><h4>Operations</h4><div className="shortcut-item"><span className="shortcut-keys"><kbd>Enter</kbd></span><span className="shortcut-description">Run selected operation (if input focused)</span></div>{/* <div className="shortcut-item"><span className="shortcut-keys"><kbd>Space</kbd></span><span className="shortcut-description">Pause/resume animation</span></div> */} <div className="shortcut-item"><span className="shortcut-keys"><kbd>Esc</kbd></span><span className="shortcut-description">Stop animation (if running)</span></div><div className="shortcut-item"><span className="shortcut-keys"><kbd>G</kbd></span><span className="shortcut-description">Create sample heap</span></div></div>
               <div className="shortcut-group"><h4>View</h4><div className="shortcut-item"><span className="shortcut-keys"><kbd>C</kbd></span><span className="shortcut-description">Toggle code panel</span></div></div>
               <div className="shortcut-group"><h4>Tree Interaction</h4><div className="shortcut-item"><span className="shortcut-description">Click and drag to pan the tree</span></div><div className="shortcut-item"><span className="shortcut-description">Use mouse wheel to zoom in/out</span></div></div>
             </div>

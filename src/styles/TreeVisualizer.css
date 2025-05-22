@@ -375,7 +375,8 @@
 }
 
 .tree-display {
-  flex: 1;
+  /* flex: 1; */ /* Original */
+  flex: 1 1 auto; /* Explicitly allow grow and shrink, auto basis */
   background: linear-gradient(to bottom, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.3));
   border: 1px solid rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(5px);
@@ -431,9 +432,11 @@
 }
 
 .code-panel {
-  flex: 0 0 350px; /* Keep fixed width */
-  /* max-height: 450px; */ /* Original */
-  height: 100%;          /* Changed */
+  /* flex: 0 0 350px; */ /* Original fixed width */
+  flex-grow: 0; /* Do not grow beyond basis */
+  flex-shrink: 0; /* Do not shrink below basis, unless space is insufficient */
+  flex-basis: 33.33%; /* Set to 1/3 of parent */
+  height: 100%;
   overflow-y: auto;      /* Added, ensure scrolling if content overflows */
   box-sizing: border-box;
   display: flex; /* Added to make syntaxhighlighter take full height */

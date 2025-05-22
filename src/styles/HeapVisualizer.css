@@ -1,9 +1,95 @@
 /* src/styles/HeapVisualizer.css */
-/* Styles specific to the Heap Visualizer can be added here in the future. */
 
-/* Example: Slightly different background for heap display area if needed */
-/*
-.heap-visualizer-container .tree-display {
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.35));
+/* Input box styling for HeapVisualizer */
+#heapValueInput {
+  background-color: rgba(0, 0, 0, 0.2); /* Darker background, similar to other controls */
+  color: #ffffff; /* White text */
+  border: 1px solid #2A623D; /* Theme border color */
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem; /* Adjust padding as needed */
+  font-size: 0.9rem;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease; /* Smooth transitions */
+  outline: none; /* Remove default browser outline */
 }
-*/
+
+#heapValueInput:focus {
+  border-color: #4CAF50; /* Brighter border color on focus - theme green */
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.6), 0 0 12px rgba(76, 175, 80, 0.4); /* Glowing effect with theme green */
+}
+
+#heapValueInput:hover {
+  border-color: #367c48; /* Slightly brighter border on hover */
+}
+
+/* Placeholder text color - might need to adjust if default is hard to see */
+#heapValueInput::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+}
+
+/* Styling for the .value-input-group if needed, e.g., margin or positioning */
+.value-input-group {
+  /* Add any specific layout adjustments for this group if necessary */
+  /* For example, ensuring it aligns well with the new button layout */
+  /* margin-right: auto; */ /* Example: Push other control groups to the right if this is in a flex container.
+                             Reviewing Turn 10, the .tree-controls is a flex container with multiple groups.
+                             The .value-input-group is the first. The .action-buttons.main-operations and
+                             .action-buttons.utility-operations come after, then .control-group.misc-controls.
+                             If .tree-controls uses justify-content: space-between or similar, this might not be needed.
+                             Current layout seems to be distinct groups.
+                           */
+  /* Let's add a specific margin for now to ensure it has some spacing if other elements crowd it */
+  margin-bottom: 0.5rem; /* Add some bottom margin if controls wrap */
+}
+
+/* Specific adjustments for HeapVisualizer's control layout from Turn 10 */
+/* .tree-controls was modified to have multiple .control-group and .action-buttons divs */
+
+/* Ensure the input group takes appropriate space */
+.tree-controls .value-input-group {
+  flex-grow: 1; /* Allow it to take available space if others are fixed width */
+  min-width: 200px; /* Ensure it has a minimum width for the input field */
+}
+
+/* If .tree-controls is a flex row and we want input on left, operations in middle, utils on right: */
+.tree-controls {
+  display: flex;
+  flex-wrap: wrap; /* Allow wrapping on smaller screens */
+  align-items: center; /* Align items vertically */
+  gap: 0.75rem; /* Consistent gap between control groups */
+}
+
+.tree-controls .value-input-group {
+  /* flex-grow: 1; already set */
+  /* No specific alignment needed if it's the first item in a row */
+}
+
+.tree-controls .action-buttons.main-operations {
+  /* This group might be in the center */
+  display: flex;
+  gap: 0.3rem;
+  justify-content: center; /* Center buttons within their group */
+  flex-wrap: wrap;
+}
+
+.tree-controls .action-buttons.utility-operations {
+  /* This group might be further to the right */
+  display: flex;
+  gap: 0.3rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.tree-controls .misc-controls {
+  /* This group is likely on the far right */
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-left: auto; /* Push this group to the far right if others don't fill space */
+}
+
+/* Ensure input field itself doesn't stretch too much if .input-group grows */
+#heapValueInput {
+  max-width: 250px; /* Or a suitable width */
+  width: 100%; /* Take width of its container up to max-width */
+}
