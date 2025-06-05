@@ -52,7 +52,7 @@ export const heapInsert = (originalHeapArray, value, heapType = 'min') => {
     const parentVal = newHeapArray[parentIndex];
 
     [newHeapArray[currentIndex], newHeapArray[parentIndex]] = [newHeapArray[parentIndex], newHeapArray[currentIndex]];
-    
+
     steps.push({
       heap: arrayToTree(newHeapArray),
       description: `Sift-up (${heapType}-heap): Swapped ${valBeingMovedUp} (moving up) with its parent ${parentVal}.`,
@@ -70,17 +70,17 @@ export const heapInsert = (originalHeapArray, value, heapType = 'min') => {
     line: null,
     highlightedNodes: [currentIndex]
   });
-  
+
   return { heap: newHeapArray, steps };
 };
 
 // Extract Top Operation (Min/Max Heap) - Renamed from extractMin
 export const extractTop = (originalHeapArray, heapType = 'min') => {
   if (originalHeapArray.length === 0) {
-    return { 
-      heap: [], 
+    return {
+      heap: [],
       steps: [{ heap: null, description: `Heap is empty, cannot extract ${heapType === 'min' ? 'min' : 'max'}.`, line: null, highlightedNodes: [] }],
-      extractedValue: null 
+      extractedValue: null
     };
   }
 
@@ -151,7 +151,7 @@ export const extractTop = (originalHeapArray, heapType = 'min') => {
       });
 
       [newHeapArray[currentIndex], newHeapArray[extremeChildIndex]] = [newHeapArray[extremeChildIndex], newHeapArray[currentIndex]];
-      
+
       steps.push({
         heap: arrayToTree(newHeapArray),
         description: `Sift-down (${heapType}-heap): Swapped. Element at index ${currentIndex} is now ${newHeapArray[currentIndex]}, element at index ${extremeChildIndex} is ${newHeapArray[extremeChildIndex]}.`,
@@ -160,7 +160,7 @@ export const extractTop = (originalHeapArray, heapType = 'min') => {
       });
       currentIndex = extremeChildIndex;
     } else {
-      break; 
+      break;
     }
   }
 
@@ -168,7 +168,7 @@ export const extractTop = (originalHeapArray, heapType = 'min') => {
     heap: arrayToTree(newHeapArray),
     description: `${heapType}-heap property restored. Extracted ${topValue}.`,
     line: null,
-    highlightedNodes: [currentIndex] 
+    highlightedNodes: [currentIndex]
   });
 
   return { heap: newHeapArray, extractedValue: topValue, steps };
@@ -227,16 +227,16 @@ export const heapify = (originalArray, heapType = 'min') => {
         });
 
         [newHeapArray[currentIndex], newHeapArray[extremeChildIndex]] = [newHeapArray[extremeChildIndex], newHeapArray[currentIndex]];
-        
+
         steps.push({
           heap: arrayToTree(newHeapArray),
           description: `Sift-down (${heapType}-heap): Swapped. Element at index ${currentIndex} is now ${newHeapArray[currentIndex]}, element at index ${extremeChildIndex} is ${newHeapArray[extremeChildIndex]}.`,
           line: null,
           highlightedNodes: [currentIndex, extremeChildIndex]
         });
-        currentIndex = extremeChildIndex; 
+        currentIndex = extremeChildIndex;
       } else {
-        break; 
+        break;
       }
     }
      steps.push({
@@ -259,17 +259,17 @@ export const heapify = (originalArray, heapType = 'min') => {
 
 // Function to create a sample heap for demonstration (always creates a min-heap)
 export const createSampleHeap = () => {
-  const sampleArray = [4, 10, 3, 5, 1, 15, 7]; 
+  const sampleArray = [4, 10, 3, 5, 1, 15, 7];
   // heapify defaults to 'min'
-  const { heap, steps: heapifySteps } = heapify(sampleArray); 
-  
+  const { heap, steps: heapifySteps } = heapify(sampleArray);
+
   const steps = [{
     heap: arrayToTree(heap),
     description: "Created a sample min-heap.", // Explicitly states min-heap
     line: null,
-    highlightedNodes: [] 
+    highlightedNodes: []
   }];
-  
+
   return { heap, steps };
 };
 
@@ -279,20 +279,20 @@ export const heapDelete = (originalHeapArray, valueToDelete, heapType = 'min') =
   const steps = [];
 
   if (workingHeapArray.length === 0) {
-    return { 
-      heap: [], 
+    return {
+      heap: [],
       steps: [{ heap: null, description: "Heap is empty. Cannot delete.", highlightedNodes: [] }],
-      deletedValue: null 
+      deletedValue: null
     };
   }
 
   const idxToDelete = workingHeapArray.indexOf(valueToDelete);
 
   if (idxToDelete === -1) {
-    return { 
-      heap: workingHeapArray, 
+    return {
+      heap: workingHeapArray,
       steps: [{ heap: arrayToTree(workingHeapArray), description: `Value ${valueToDelete} not found in ${heapType}-heap.`, highlightedNodes: [] }],
-      deletedValue: null 
+      deletedValue: null
     };
   }
 
@@ -304,7 +304,7 @@ export const heapDelete = (originalHeapArray, valueToDelete, heapType = 'min') =
 
   const originalLength = workingHeapArray.length;
   const lastElement = workingHeapArray[originalLength - 1];
-  
+
   if (idxToDelete === originalLength - 1) {
     workingHeapArray.pop();
     steps.push({
@@ -315,18 +315,18 @@ export const heapDelete = (originalHeapArray, valueToDelete, heapType = 'min') =
   } else {
     workingHeapArray[idxToDelete] = lastElement;
     steps.push({
-      heap: arrayToTree(workingHeapArray.slice(0, originalLength)), 
+      heap: arrayToTree(workingHeapArray.slice(0, originalLength)),
       description: `Replaced ${valueToDelete} at index ${idxToDelete} with last element ${lastElement} (from index ${originalLength-1}).`,
-      highlightedNodes: [idxToDelete, originalLength - 1] 
+      highlightedNodes: [idxToDelete, originalLength - 1]
     });
-    
+
     workingHeapArray.pop();
     steps.push({
       heap: arrayToTree([...workingHeapArray]),
       description: `Removed original last element from end. ${heapType}-heap size is now ${workingHeapArray.length}. Element at index ${idxToDelete} is now ${workingHeapArray[idxToDelete]}.`,
       highlightedNodes: [idxToDelete]
     });
-    
+
     let currentIndex = idxToDelete;
     let parentIndex = Math.floor((currentIndex - 1) / 2);
 
@@ -358,14 +358,14 @@ export const heapDelete = (originalHeapArray, valueToDelete, heapType = 'min') =
           description: `Sift-up (${heapType}-heap) complete. Element ${workingHeapArray[currentIndex]} is in position.`,
           highlightedNodes: [currentIndex]
       });
-    } else { 
+    } else {
       steps.push({
         heap: arrayToTree([...workingHeapArray]),
         description: `Value ${workingHeapArray[currentIndex]} at index ${currentIndex} did not move up. Checking sift-down for ${heapType}-heap.`,
         highlightedNodes: [currentIndex]
       });
-      
-      let currentIdxDown = currentIndex; 
+
+      let currentIdxDown = currentIndex;
       const n = workingHeapArray.length;
       while (true) {
         let leftChildIndex = 2 * currentIdxDown + 1;
@@ -402,9 +402,9 @@ export const heapDelete = (originalHeapArray, valueToDelete, heapType = 'min') =
             description: `Sift-down (${heapType}-heap): Swapped. Element at ${currentIdxDown} is now ${workingHeapArray[currentIdxDown]}, element at ${extremeChildIndex} is ${workingHeapArray[extremeChildIndex]}.`,
             highlightedNodes: [currentIdxDown, extremeChildIndex]
           });
-          currentIdxDown = extremeChildIndex; 
+          currentIdxDown = extremeChildIndex;
         } else {
-          break; 
+          break;
         }
       }
       steps.push({
@@ -414,11 +414,11 @@ export const heapDelete = (originalHeapArray, valueToDelete, heapType = 'min') =
       });
     }
   }
-  
+
   steps.push({
     heap: arrayToTree(workingHeapArray),
     description: `Deletion of ${valueToDelete} from ${heapType}-heap complete. Property restored.`,
-    highlightedNodes: [] 
+    highlightedNodes: []
   });
 
   return { heap: workingHeapArray, steps, deletedValue: valueToDelete };
